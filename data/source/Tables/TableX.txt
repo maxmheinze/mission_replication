@@ -1,0 +1,11 @@
+	(1)	(2)
+VARIABLES	foundries	foundries
+		
+distmiss	-0.00255**	-0.00255**
+	(0.00103)	(0.00103)
+Constant	1.780	1.780
+	(4.709)	(4.709)
+		
+Observations	174,964	174,964
+Robust standard errors in parentheses		
+*** p<0.01, ** p<0.05, * p<0.1		
