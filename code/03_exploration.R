@@ -126,12 +126,11 @@ coef(bmalit)
 beta.draws.bma(bmalit[1:3])
 
 image(bmalit[1:100],FALSE) 
-#plot signs (pos=blue, neg=red, not included=white) for best 100 models
 
 plotModelsize(bmalit,exact=TRUE) 
-#plot prior and posterior model size based on exact likelhoods 
-# of best (100) models
 
 plot(bmalit)
+
+density(bmalit)
 
 
