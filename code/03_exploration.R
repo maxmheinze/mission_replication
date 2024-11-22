@@ -4,11 +4,17 @@
 pacman::p_load(
   dplyr,
   magrittr,
+  haven,
   fixest,
   BMS
 )
 
+rm(list=ls())
+
 data_path <- "./data/source/Tables"
+
+
+
 
 
 # Read in Data ------------------------------------------------------------
@@ -52,7 +58,7 @@ etable(
   model_argentina_2, 
   model_paraguay_1, 
   model_paraguay_2,
-  se = "stata"
+  se = "hetero"
 )
 
 # note that brazil coefficients can be exactly replicated if mesorregi is treated as dbl,
@@ -62,6 +68,80 @@ etable(
 
 
 # Slap a BMA on it --------------------------------------------------------
+
+literacy_matrix <- cbind(
+  literacy_data$illiteracy,
+  literacy_data$distmiss,
+  literacy_data$lati,
+  literacy_data$longi,
+  literacy_data$corr,
+  literacy_data$ita,
+  literacy_data$mis,
+  literacy_data$mis1,
+  literacy_data$area,
+  literacy_data$tempe,
+  literacy_data$alti,
+  literacy_data$preci,
+  literacy_data$rugg,
+  literacy_data$river,
+  literacy_data$coast,
+  literacy_data$distfran
+  #literacy_data$popd
+  #exp(literacy_data$distmiss * -1),
+  #exp(literacy_data$distfran * -1)
+)
+
+colnames(literacy_matrix) <- c(
+  "illiteracy",
+  "distmiss",
+  "lati",
+  "longi",
+  "corr",
+  "ita",
+  "mis",
+  "mis1",
+  "area",
+  "tempe",
+  "alti",
+  "preci",
+  "rugg",
+  "river",
+  "coast",
+  "distfran"
+  #"popd"
+  #"exp_distmiss",
+  #"exp_distfran"
+)
+
+bmalit = bms(
+  X.data = literacy_matrix,
+  burn = 10000,
+  iter = 100000,
+  nmodel = 100, 
+  mprior="fixed", 
+  g="UIP",  
+  mprior.size=7, 
+  user.int=T
+)
+
+
+summary(bmalit)
+
+coef(bmalit)
+
+beta.draws.bma(bmalit[1:3])
+
+pdf("/home/max/research/mission_replication/image_without_popd.pdf", width = 8, height = 5)
+image(bmalit[1:100],F) 
+dev.off()
+
+plotModelsize(bmalit,exact=TRUE) 
+
+plot(bmalit)
+
+density(bmalit)
+
+# Include popd ------------------------------------------------------------
 
 literacy_matrix <- cbind(
   literacy_data$illiteracy,
@@ -119,13 +199,15 @@ bmalit = bms(
 )
 
 
-summary(bmalit)
+#summary(bmalit)
 
-coef(bmalit)
+#coef(bmalit)
 
-beta.draws.bma(bmalit[1:3])
+#beta.draws.bma(bmalit[1:3])
 
-image(bmalit[1:100],FALSE) 
+pdf("/home/max/research/mission_replication/image_with_popd.pdf", width = 8, height = 5)
+image(bmalit[1:100],F) 
+dev.off()
 
 plotModelsize(bmalit,exact=TRUE) 
 
