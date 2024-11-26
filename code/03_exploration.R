@@ -125,25 +125,27 @@ bmalit = bms(
 )
 
 
-summary(bmalit)
+# summary(bmalit)
 
-coef(bmalit)
+# coef(bmalit)
 
-beta.draws.bma(bmalit[1:3])
+# beta.draws.bma(bmalit[1:3])
 
 pdf("/home/max/research/mission_replication/image_without_popd.pdf", width = 8, height = 5)
 image(bmalit[1:100],F) 
 dev.off()
 
-plotModelsize(bmalit,exact=TRUE) 
+# plotModelsize(bmalit,exact=TRUE) 
 
-plot(bmalit)
+# plot(bmalit)
 
+pdf("/home/max/research/mission_replication/density_distmiss_without_popd.pdf", width = 8, height = 5)
 density(bmalit)
+dev.off()
 
 # Include popd ------------------------------------------------------------
 
-literacy_matrix <- cbind(
+literacy_matrix_p <- cbind(
   literacy_data$illiteracy,
   literacy_data$distmiss,
   literacy_data$lati,
@@ -165,7 +167,7 @@ literacy_matrix <- cbind(
   #exp(literacy_data$distfran * -1)
 )
 
-colnames(literacy_matrix) <- c(
+colnames(literacy_matrix_p) <- c(
   "illiteracy",
   "distmiss",
   "lati",
@@ -187,8 +189,8 @@ colnames(literacy_matrix) <- c(
   #"exp_distfran"
 )
 
-bmalit = bms(
-  X.data = literacy_matrix,
+bmalitp = bms(
+  X.data = literacy_matrix_p,
   burn = 10000,
   iter = 100000,
   nmodel = 100, 
@@ -199,20 +201,22 @@ bmalit = bms(
 )
 
 
-#summary(bmalit)
+#summary(bmalitp)
 
-#coef(bmalit)
+#coef(bmalitp)
 
-#beta.draws.bma(bmalit[1:3])
+#beta.draws.bma(bmalitp[1:3])
 
 pdf("/home/max/research/mission_replication/image_with_popd.pdf", width = 8, height = 5)
-image(bmalit[1:100],F) 
+image(bmalitp[1:100],F) 
 dev.off()
 
-plotModelsize(bmalit,exact=TRUE) 
+# plotModelsize(bmalitp,exact=TRUE) 
 
-plot(bmalit)
+# plot(bmalitp)
 
-density(bmalit)
+pdf("/home/max/research/mission_replication/density_distmiss_with_popd.pdf", width = 8, height = 5)
+density(bmalitp)
+dev.off()
 
 
