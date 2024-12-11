@@ -1,0 +1,507 @@
+---
+title: "BMA with Different Distance Measures"
+format: html
+filters:
+  - /home/max/_extensions/tarleb/parse-latex/parse-latex.lua
+---
+
+---
+
+
+::: {.callout-note collapse="true" icon="false" appearance="simple"}
+### Replication of Original Table II from Paper
+
+```{r header, echo = FALSE}
+
+pacman::p_load(
+  dplyr,
+  magrittr,
+  haven,
+  fixest,
+  BMS
+)
+
+rm(list=ls())
+
+data_path <- "../data/source/Tables"
+```
+
+```{r replicate_table_2, echo = FALSE, results="asis", message = FALSE, warnings = FALSE}
+# Read in Data ------------------------------------------------------------
+
+literacy_data <- read_dta(file.path(data_path, "Literacy Argentina Brazil Paraguay.dta"))
+
+literacy_data <- literacy_data %>%
+  mutate(mesorregi = as.factor(mesorregi))
+
+# Re-Run the Regression from the Paper ------------------------------------
+
+# Full sample
+model_full_1 <- feols(illiteracy ~ distmiss + lati + longi + corr + ita + mis + mis1, data = literacy_data)
+model_full_2 <- feols(illiteracy ~ distmiss + lati + longi + area + tempe + alti + preci + rugg + river + coast + corr + ita + mis + mis1, data = literacy_data)
+
+# Brazil
+brazil_data <- literacy_data %>% filter(country == "BRA")
+model_brazil_1 <- feols(illiteracy ~ distmiss + lati + longi + mesorregi, data = brazil_data)
+model_brazil_2 <- feols(illiteracy ~ distmiss + lati + longi + area + tempe + alti + preci + rugg + river + coast + mesorregi, data = brazil_data)
+
+# Argentina
+argentina_data <- literacy_data %>% filter(country == "Argentina")
+model_argentina_1 <- feols(illiteracy ~ distmiss + lati + longi + corr, data = argentina_data)
+model_argentina_2 <- feols(illiteracy ~ distmiss + lati + longi + area + tempe + alti + preci + rugg + river + coast + corr, data = argentina_data)
+
+# Paraguay
+paraguay_data <- literacy_data %>% filter(country == "Paraguay")
+model_paraguay_1 <- feols(illiteracy ~ distmiss + ita, data = paraguay_data)
+model_paraguay_2 <- feols(illiteracy ~ distmiss + area + tempe + alti + preci + rugg + river + coast + ita, data = paraguay_data)
+
+
+# Display outputs
+etable(
+  model_full_1, 
+  model_full_2, 
+  model_brazil_1, 
+  model_brazil_2, 
+  model_argentina_1, 
+  model_argentina_2, 
+  model_paraguay_1, 
+  model_paraguay_2,
+  se = "hetero",
+  tex = TRUE
+)
+```
+:::
+
+## BMA with Linear Distance
+
+::: {.callout-tip collapse="true" icon="false"}
+### Raw Output
+```{r linear, echo = FALSE, warnings = FALSE}
+# Slap a BMA on it --------------------------------------------------------
+
+literacy_matrix <- cbind(
+  literacy_data$illiteracy,
+  literacy_data$distmiss,
+  literacy_data$lati,
+  literacy_data$longi,
+  literacy_data$corr,
+  literacy_data$ita,
+  literacy_data$mis,
+  literacy_data$mis1,
+  literacy_data$area,
+  literacy_data$tempe,
+  literacy_data$alti,
+  literacy_data$preci,
+  literacy_data$rugg,
+  literacy_data$river,
+  literacy_data$coast,
+  literacy_data$distfran
+)
+
+colnames(literacy_matrix) <- c(
+  "illiteracy",
+  "distmiss",
+  "lati",
+  "longi",
+  "corr",
+  "ita",
+  "mis",
+  "mis1",
+  "area",
+  "tempe",
+  "alti",
+  "preci",
+  "rugg",
+  "river",
+  "coast",
+  "distfran"
+)
+
+bmalit = bms(
+  X.data = literacy_matrix,
+  burn = 10000,
+  iter = 100000,
+  nmodel = 100, 
+  mprior="fixed", 
+  g="UIP",  
+  mprior.size=7, 
+  user.int=T
+)
+```
+:::
+
+::: {.callout-warning collapse="true" icon="false"}
+### Image
+```{r linear_image, echo = FALSE}
+image(bmalit[1:100],F) 
+```
+:::
+
+::: {.callout-note collapse="true" icon="false"}
+### Density Plots
+```{r linear_density, echo = FALSE}
+density(bmalit)
+```
+:::
+
+
+## BMA with Linear Distance, Fixed Distance Inclusion
+
+::: {.callout-tip collapse="true" icon="false"}
+### Raw Output
+```{r linearf, echo = FALSE, warnings = FALSE}
+# Slap a BMA on it --------------------------------------------------------
+
+bmalitf = bms(
+  X.data = literacy_matrix,
+  burn = 10000,
+  iter = 100000,
+  nmodel = 100, 
+  mprior="fixed", 
+  g="UIP",  
+  mprior.size=7, 
+  user.int=T,
+  fixed.reg = "distmiss"
+)
+```
+:::
+
+::: {.callout-warning collapse="true" icon="false"}
+### Image
+```{r linearf_image, echo = FALSE}
+image(bmalitf[1:100],F) 
+```
+:::
+
+::: {.callout-note collapse="true" icon="false"}
+### Density Plots
+```{r linearf_density, echo = FALSE}
+density(bmalitf)
+```
+:::
+
+
+## BMA with Exponential Distance (λ = 1/200)
+
+::: {.callout-tip collapse="true" icon="false"}
+### Raw Output
+```{r exp, echo = FALSE, warnings = FALSE}
+# Slap a BMA on it --------------------------------------------------------
+
+literacy_matrix <- cbind(
+  literacy_data$illiteracy,
+  exp(-literacy_data$distmiss/200),
+  literacy_data$lati,
+  literacy_data$longi,
+  literacy_data$corr,
+  literacy_data$ita,
+  literacy_data$mis,
+  literacy_data$mis1,
+  literacy_data$area,
+  literacy_data$tempe,
+  literacy_data$alti,
+  literacy_data$preci,
+  literacy_data$rugg,
+  literacy_data$river,
+  literacy_data$coast,
+  exp(-literacy_data$distfran/200)
+)
+
+colnames(literacy_matrix) <- c(
+  "illiteracy",
+  "distmiss_exp",
+  "lati",
+  "longi",
+  "corr",
+  "ita",
+  "mis",
+  "mis1",
+  "area",
+  "tempe",
+  "alti",
+  "preci",
+  "rugg",
+  "river",
+  "coast",
+  "distfran_exp"
+)
+
+bmalit = bms(
+  X.data = literacy_matrix,
+  burn = 10000,
+  iter = 100000,
+  nmodel = 100, 
+  mprior="fixed", 
+  g="UIP",  
+  mprior.size=7, 
+  user.int=T
+)
+```
+:::
+
+::: {.callout-warning collapse="true" icon="false"}
+### Image
+```{r exp_image, echo = FALSE}
+image(bmalit[1:100],F) 
+```
+:::
+
+::: {.callout-note collapse="true" icon="false"}
+### Density Plots
+```{r exp_density, echo = FALSE}
+density(bmalit)
+```
+:::
+
+
+## BMA with Exponential Distance (λ = 1/200), Fixed Distance Inclusion
+
+::: {.callout-tip collapse="true" icon="false"}
+### Raw Output
+```{r expf, echo = FALSE, warnings = FALSE}
+# Slap a BMA on it --------------------------------------------------------
+
+bmalitf = bms(
+  X.data = literacy_matrix,
+  burn = 10000,
+  iter = 100000,
+  nmodel = 100, 
+  mprior="fixed", 
+  g="UIP",  
+  mprior.size=7, 
+  user.int=T,
+  fixed.reg = "distmiss_exp"
+)
+```
+:::
+
+::: {.callout-warning collapse="true" icon="false"}
+### Image
+```{r expf_image, echo = FALSE}
+image(bmalitf[1:100],F) 
+```
+:::
+
+::: {.callout-note collapse="true" icon="false"}
+### Density Plots
+```{r expf_density, echo = FALSE}
+density(bmalitf)
+```
+:::
+
+## BMA with Logarhitmic Distance
+
+::: {.callout-tip collapse="true" icon="false"}
+### Raw Output
+```{r log, echo = FALSE, warnings = FALSE}
+# Slap a BMA on it --------------------------------------------------------
+
+literacy_matrix <- cbind(
+  literacy_data$illiteracy,
+  log(literacy_data$distmiss),
+  literacy_data$lati,
+  literacy_data$longi,
+  literacy_data$corr,
+  literacy_data$ita,
+  literacy_data$mis,
+  literacy_data$mis1,
+  literacy_data$area,
+  literacy_data$tempe,
+  literacy_data$alti,
+  literacy_data$preci,
+  literacy_data$rugg,
+  literacy_data$river,
+  literacy_data$coast,
+  log(literacy_data$distfran)
+)
+
+colnames(literacy_matrix) <- c(
+  "illiteracy",
+  "distmiss_log",
+  "lati",
+  "longi",
+  "corr",
+  "ita",
+  "mis",
+  "mis1",
+  "area",
+  "tempe",
+  "alti",
+  "preci",
+  "rugg",
+  "river",
+  "coast",
+  "distfran_log"
+)
+
+bmalit = bms(
+  X.data = literacy_matrix,
+  burn = 10000,
+  iter = 100000,
+  nmodel = 100, 
+  mprior="fixed", 
+  g="UIP",  
+  mprior.size=7, 
+  user.int=T
+)
+```
+:::
+
+::: {.callout-warning collapse="true" icon="false"}
+### Image
+```{r log_image, echo = FALSE}
+image(bmalit[1:100],F) 
+```
+:::
+
+::: {.callout-note collapse="true" icon="false"}
+### Density Plots
+```{r log_density, echo = FALSE}
+density(bmalit)
+```
+:::
+
+
+## BMA with Logarithmic Distance, Fixed Distance Inclusion
+
+::: {.callout-tip collapse="true" icon="false"}
+### Raw Output
+```{r logf, echo = FALSE, warnings = FALSE}
+# Slap a BMA on it --------------------------------------------------------
+
+bmalitf = bms(
+  X.data = literacy_matrix,
+  burn = 10000,
+  iter = 100000,
+  nmodel = 100, 
+  mprior="fixed", 
+  g="UIP",  
+  mprior.size=7, 
+  user.int=T,
+  fixed.reg = "distmiss_log"
+)
+```
+:::
+
+::: {.callout-warning collapse="true" icon="false"}
+### Image
+```{r logf_image, echo = FALSE}
+image(bmalitf[1:100],F) 
+```
+:::
+
+::: {.callout-note collapse="true" icon="false"}
+### Density Plots
+```{r logf_density, echo = FALSE}
+density(bmalitf)
+```
+:::
+
+## BMA with Gaussian Distance (exp(-(d²)/(2*100²)))
+
+::: {.callout-tip collapse="true" icon="false"}
+### Raw Output
+```{r gau, echo = FALSE, warnings = FALSE}
+# Slap a BMA on it --------------------------------------------------------
+
+literacy_matrix <- cbind(
+  literacy_data$illiteracy,
+  exp(-(literacy_data$distmiss^2)/(2*100^2)),
+  literacy_data$lati,
+  literacy_data$longi,
+  literacy_data$corr,
+  literacy_data$ita,
+  literacy_data$mis,
+  literacy_data$mis1,
+  literacy_data$area,
+  literacy_data$tempe,
+  literacy_data$alti,
+  literacy_data$preci,
+  literacy_data$rugg,
+  literacy_data$river,
+  literacy_data$coast,
+  exp(-(literacy_data$distfran^2)/(2*100^2))
+)
+
+colnames(literacy_matrix) <- c(
+  "illiteracy",
+  "distmiss_gau",
+  "lati",
+  "longi",
+  "corr",
+  "ita",
+  "mis",
+  "mis1",
+  "area",
+  "tempe",
+  "alti",
+  "preci",
+  "rugg",
+  "river",
+  "coast",
+  "distfran_gau"
+)
+
+bmalit = bms(
+  X.data = literacy_matrix,
+  burn = 10000,
+  iter = 100000,
+  nmodel = 100, 
+  mprior="fixed", 
+  g="UIP",  
+  mprior.size=7, 
+  user.int=T
+)
+```
+:::
+
+::: {.callout-warning collapse="true" icon="false"}
+### Image
+```{r gau_image, echo = FALSE}
+image(bmalit[1:100],F) 
+```
+:::
+
+::: {.callout-note collapse="true" icon="false"}
+### Density Plots
+```{r gau_density, echo = FALSE}
+density(bmalit)
+```
+:::
+
+
+## BMA with Gaussian Distance (exp(-(d²)/(2*100²))), Fixed Distance Inclusion
+
+::: {.callout-tip collapse="true" icon="false"}
+### Raw Output
+```{r gauf, echo = FALSE, warnings = FALSE}
+# Slap a BMA on it --------------------------------------------------------
+
+bmalitf = bms(
+  X.data = literacy_matrix,
+  burn = 10000,
+  iter = 100000,
+  nmodel = 100, 
+  mprior="fixed", 
+  g="UIP",  
+  mprior.size=7, 
+  user.int=T,
+  fixed.reg = "distmiss_gau"
+)
+```
+:::
+
+::: {.callout-warning collapse="true" icon="false"}
+### Image
+```{r gauf_image, echo = FALSE}
+image(bmalitf[1:100],F) 
+```
+:::
+
+::: {.callout-note collapse="true" icon="false"}
+### Density Plots
+```{r gauf_density, echo = FALSE}
+density(bmalitf)
+```
+:::
+
